@@ -41,15 +41,17 @@ def R_ULSIF(x_nu, x_de, x_re, alpha, sigma_list,lambda_list, b, fold):
 # b: number of kernel basis
 # fold: number of fold for cross validation
 
-    (d,n_nu) = x_nu.shape;
-    (d,n_de) = x_de.shape;
-    rand_index = permutation(n_nu);
-    b = min(b,n_nu);
+    (d,n_nu) = x_nu.shape
+    (d,n_de) = x_de.shape
+    rand_index = permutation(n_nu)
+    b = min(b,n_nu)
     #x_ce = x_nu[:,rand_index[0:b]]
     x_ce = x_nu[:,r_[0:b]]
+    # r_[0:10] is np.arange(10)
 
-    score_cv=zeros( (size(sigma_list), \
-        size(lambda_list)));
+    score_cv=zeros( (size(sigma_list),
+        size(lambda_list)))
+    # zeros is np.zeros((a,b))
 
     cv_index_nu = permutation(n_nu)
     #cv_index_nu = r_[0:n_nu]
@@ -59,70 +61,70 @@ def R_ULSIF(x_nu, x_de, x_re, alpha, sigma_list,lambda_list, b, fold):
     cv_split_de=floor(r_[0:n_de]*fold/n_de)
 
     for sigma_index in r_[0:size(sigma_list)]:
-        sigma=sigma_list[sigma_index];
-        K_de=kernel_Gaussian(x_de,x_ce,sigma).T;
-        K_nu=kernel_Gaussian(x_nu,x_ce,sigma).T;
+        sigma=sigma_list[sigma_index]
+        K_de=kernel_Gaussian(x_de,x_ce,sigma).T
+        K_nu=kernel_Gaussian(x_nu,x_ce,sigma).T
 
-        score_tmp=zeros( (fold,size(lambda_list)));
+        score_tmp=zeros( (fold,size(lambda_list)))
 
         for k in r_[0:fold]:
-            Ktmp1=K_de[:,cv_index_de[cv_split_de!=k]];
-            Ktmp2=K_nu[:,cv_index_nu[cv_split_nu!=k]];
+            Ktmp1=K_de[:,cv_index_de[cv_split_de!=k]]
+            Ktmp2=K_nu[:,cv_index_nu[cv_split_nu!=k]]
             
             Ktmp = alpha/Ktmp2.shape[1]*dot(Ktmp2,Ktmp2.T) + \
-                (1-alpha)/Ktmp1.shape[1]*dot(Ktmp1, Ktmp1.T);
+                (1-alpha)/Ktmp1.shape[1]*dot(Ktmp1, Ktmp1.T)
             
-            mKtmp = mean(K_nu[:,cv_index_nu[cv_split_nu!=k]],1);
+            mKtmp = mean(K_nu[:,cv_index_nu[cv_split_nu!=k]],1)
            
             for lambda_index in r_[0:size(lambda_list)]:
                 
-                lbd =lambda_list[lambda_index];
+                lbd =lambda_list[lambda_index]
                 
-                thetat_cv= linalg.solve( Ktmp + lbd*eye(b), mKtmp);
+                thetat_cv= linalg.solve( Ktmp + lbd*eye(b), mKtmp)
                 thetah_cv=thetat_cv;
 
                 score_tmp[k,lambda_index]= alpha*mean(dot(K_nu[:,cv_index_nu[cv_split_nu==k]].T,thetah_cv)**2)/2. \
                     + (1-alpha)*mean(dot(K_de[:,cv_index_de[cv_split_de==k]].T, thetah_cv)**2)/2. \
-                    - mean( dot(K_nu[:,cv_index_nu[cv_split_nu==k]].T, thetah_cv));
+                    - mean( dot(K_nu[:,cv_index_nu[cv_split_nu==k]].T, thetah_cv))
 
-            score_cv[sigma_index,:]=mean(score_tmp,0);
+            score_cv[sigma_index,:]=mean(score_tmp,0)
     
-    score_cv_tmp=score_cv.min(1);
-    lambda_chosen_index = score_cv.argmin(1);
+    score_cv_tmp=score_cv.min(1)
+    lambda_chosen_index = score_cv.argmin(1)
 
-    score=score_cv_tmp.min();
-    sigma_chosen_index = score_cv_tmp.argmin();
+    score=score_cv_tmp.min()
+    sigma_chosen_index = score_cv_tmp.argmin()
 
-    lambda_chosen=lambda_list[lambda_chosen_index[sigma_chosen_index]];
-    sigma_chosen=sigma_list[sigma_chosen_index];
+    lambda_chosen=lambda_list[lambda_chosen_index[sigma_chosen_index]]
+    sigma_chosen=sigma_list[sigma_chosen_index]
 
-    K_de=kernel_Gaussian(x_de,x_ce,sigma_chosen).T;
-    K_nu=kernel_Gaussian(x_nu,x_ce,sigma_chosen).T;
+    K_de=kernel_Gaussian(x_de,x_ce,sigma_chosen).T
+    K_nu=kernel_Gaussian(x_nu,x_ce,sigma_chosen).T
 
     coe = alpha*dot(K_nu,K_nu.T)/n_nu + \
         (1-alpha)*dot(K_de,K_de.T)/n_de + \
         lambda_chosen*eye(b)
     var = mean(K_nu,1)
     
-    thetat=linalg.solve(coe,var);
+    thetat=linalg.solve(coe,var)
 #    thetat=linalg.lstsq(coe,var)[0]
 #    linalg.cho_factor(coe,overwrite_a=True)
 #    linalg.cho_solve((coe,False), var, overwrite_b=True)
 #    thetat = var
     
     #thetah=maximum(0,thetat)
-    thetah = thetat;
-    wh_x_de=dot(K_de.T,thetah).T;
-    wh_x_nu=dot(K_nu.T,thetah).T;
+    thetah = thetat
+    wh_x_de=dot(K_de.T,thetah).T
+    wh_x_nu=dot(K_nu.T,thetah).T
 
-    K_di=kernel_Gaussian(x_re,x_ce,sigma_chosen).T;
-    wh_x_re=dot(K_di.T,thetah).T;
+    K_di=kernel_Gaussian(x_re,x_ce,sigma_chosen).T
+    wh_x_re=dot(K_di.T,thetah).T
 
     wh_x_de[wh_x_de <0 ] = 0
-    wh_x_re[wh_x_re <0] = 0;
+    wh_x_re[wh_x_re <0] = 0
     
     PE = mean(wh_x_nu) - 1./2*(alpha*mean(wh_x_nu**2) + \
-        (1-alpha)*mean(wh_x_de**2)) - 1./2;
+        (1-alpha)*mean(wh_x_de**2)) - 1./2
 
     return (PE,wh_x_re,score)
 
