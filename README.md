@@ -24,5 +24,6 @@ RuLSIFとの精度比較を行ったコード
 
 XGBoostでのCovariate-Shift条件下での精度比較
 
-## src/pyRULSIF.py
+## pyRULSIF.py
+`src/pyRULSIF.py`
 拝借したRuLSIF実装
